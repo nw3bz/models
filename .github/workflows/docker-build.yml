@@ -1,37 +1,55 @@
-name: Build Custom to Docker Hub
+name: Build to Docker Hub
 
 on:
   workflow_dispatch:
     inputs:
       git_tag:
-        description: 'Nhập Tag của mã nguồn (vd: v0.4.20)'
+        description: 'Phiên bản build (vd: v0.4.20)'
         required: true
-        default: 'v0.4.20'
+        default: 'latest'
       image_tag:
-        description: 'Nhập Tag cho Docker Image (vd: latest hoặc v1.0)'
+        description: 'Docker Image (vd: latest)'
         required: true
         default: 'latest'
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
+    
     steps:
+      # 1. Tải mã nguồn từ tag đã chọn
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.git_tag }}
 
-      - name: Login Docker Hub
+      # 2. Bước xác nhận để bạn kiểm tra xem có đúng tag không
+      - name: Verify Version
+        run: |
+          echo "Build Tags: ${{ github.event.inputs.git_tag }}"
+          echo "Push DockerHubs Tags: ${{ github.event.inputs.image_tag }}"
+          git log -1 --format='%H' # In ra mã SHA của commit để đối chiếu
+
+      # 3. Đăng nhập vào Docker Hub
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_NAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # 4. Thiết lập Buildx (Hỗ trợ build tốt hơn)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 5. Build và Push Image
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_NAME }}/models:${{ github.event.inputs.image_tag }}
-            ${{ secrets.DOCKERHUB_NAME }}/models:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/models:${{ github.event.inputs.image_tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/models:latest
+          # Tối ưu hóa bộ nhớ đệm để lần sau build nhanh hơn
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
