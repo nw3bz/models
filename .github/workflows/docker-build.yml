@@ -48,8 +48,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/models:${{ github.event.inputs.image_tag }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/models:latest
+            ${{ secrets.DOCKERHUB_NAME }}/models:${{ github.event.inputs.image_tag }}
+            ${{ secrets.DOCKERHUB_NAME }}/models:latest
           # Tối ưu hóa bộ nhớ đệm để lần sau build nhanh hơn
           cache-from: type=gha
           cache-to: type=gha,mode=max
